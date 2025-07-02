@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "resume_api",
     "payments",
     "users",
+  
 ]
 
 MIDDLEWARE = [
@@ -142,6 +143,21 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'sec-ch-ua',
+    'sec-ch-ua-mobile',
+    'sec-ch-ua-platform',
+    'referer'
+]
 
 # REST Framework settings
 REST_FRAMEWORK = {

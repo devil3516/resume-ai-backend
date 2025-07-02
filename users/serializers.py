@@ -18,7 +18,7 @@ class UserSerializer(serializers.ModelSerializer):
             request = self.context.get('request')
             if request:
                 return request.build_absolute_uri(obj.profile_picture.url)
-            return f"http://localhost:8000{obj.profile_picture.url}"
+            return f"http://127.0.0.1:8000{obj.profile_picture.url}"
         return None
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -61,7 +61,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             if request:
                 profile_picture_url = request.build_absolute_uri(user.profile_picture.url)
             else:
-                profile_picture_url = f"http://localhost:8000{user.profile_picture.url}"
+                profile_picture_url = f"http://127.0.0.1:8000{user.profile_picture.url}"
         
         response_data = {
             'id': user.id,
@@ -84,4 +84,4 @@ class UpdateUserSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-        return instance 
+        return instance
