@@ -10,6 +10,12 @@ from rest_framework import status
 from pypdf import PdfReader
 from .resume_parser import ats_extractor, match_analyzer
 from django.conf import settings
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+import json
+from django.utils import timezone
+from .models import Resume
 
 
 @api_view(['GET'])
@@ -20,6 +26,7 @@ def index(request):
 
 @api_view(['POST'])
 @parser_classes([MultiPartParser, FormParser])
+@permission_classes([IsAuthenticated])
 def process_resume(request):
     """Process uploaded PDF resume and extract information"""
     
@@ -91,6 +98,7 @@ def _read_file_from_path(path):
 
 @api_view(['POST'])
 @parser_classes([JSONParser])
+@permission_classes([IsAuthenticated])
 def match_analysis(request):
     """Analyze how well a resume matches a job description"""
     
@@ -117,3 +125,51 @@ def match_analysis(request):
             {"error": "Failed to analyze match", "message": str(e)}, 
             status=status.HTTP_500_INTERNAL_SERVER_ERROR
         )
+    
+
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def save_resume(request):
+    try:
+        resume_data = request.data.get('resume_data')
+        filename = request.data.get('original_filename', 'resume.pdf')
+        
+        # Save to your Resume model
+        Resume.objects.create(
+            user=request.user,
+            resume_data=resume_data,
+            original_filename=filename,
+            created_at=timezone.now()
+        )
+        
+        return Response({'message': 'Resume saved successfully'})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+    
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_latest_resume(request):
+    try:
+        latest_resume = Resume.objects.filter(user=request.user).latest('created_at')
+        return Response({'resume_data': latest_resume.resume_data})
+    except Resume.DoesNotExist:
+        return Response({'message': 'No resume found'}, status=404)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_resume_history(request):
+    resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    resume_list = []
+    
+    for resume in resumes:
+        resume_list.append({
+            'id': resume.id,
+            'original_filename': resume.original_filename,
+            'created_at': resume.created_at,
+            'resume_data': resume.resume_data
+        })
+    
+    return Response({'resumes': resume_list})
