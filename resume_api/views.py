@@ -3,10 +3,11 @@ import os
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from rest_framework.decorators import api_view, parser_classes
+from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from pypdf import PdfReader
 from .resume_parser import ats_extractor, match_analyzer
 from django.conf import settings
@@ -19,9 +20,26 @@ from .models import Resume
 
 
 @api_view(['GET'])
+@permission_classes([AllowAny])
 def index(request):
     """Health check endpoint"""
-    return Response({"message": "Resume Parser API is running."}, status=status.HTTP_200_OK)
+    return Response({
+        "message": "Resume Parser API is running successfully!",
+        "status": "healthy",
+        "version": "1.0.0",
+        "endpoints": {
+            "health": "/",
+            "auth": {
+                "login": "/api/auth/login/",
+                "register": "/api/auth/register/",
+                "logout": "/api/auth/logout/"
+            },
+            "resume": {
+                "process": "/api/resumes/process/",
+                "match": "/api/resumes/match/"
+            }
+        }
+    }, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])
