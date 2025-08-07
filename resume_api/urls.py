@@ -10,6 +10,5 @@ urlpatterns = [
     path('resumes/save/', save_resume, name='save_resume'),
     path('resumes/latest/', get_latest_resume, name='latest_resume'),
     path('resumes/history/', get_resume_history, name='resume_history'),
-
 ]
 
