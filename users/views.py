@@ -169,6 +169,18 @@ def logout(request):
         try:
             # Create a token object and blacklist it
             token_obj = AccessToken(token)
+            
+            # Import the blacklist model
+            from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+            
+            # Check if token is already blacklisted
+            if BlacklistedToken.objects.filter(token__jti=token_obj['jti']).exists():
+                return Response({
+                    'success': True,
+                    'message': 'Token already blacklisted'
+                }, status=status.HTTP_200_OK)
+            
+            # Blacklist the token
             token_obj.blacklist()
             
             return Response({
@@ -177,6 +189,7 @@ def logout(request):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
+            print(f"Token blacklisting error: {e}")
             # If token is invalid or already blacklisted, still return success
             # as the goal is to logout the user
             return Response({
@@ -185,6 +198,7 @@ def logout(request):
             }, status=status.HTTP_200_OK)
             
     except Exception as e:
+        print(f"Logout error: {e}")
         return Response({
             'success': False,
             'message': 'Logout failed. Please try again.'
