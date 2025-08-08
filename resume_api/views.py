@@ -21,23 +21,6 @@ from .models import Resume
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
-def debug_urls(request):
-    """Debug endpoint to test URL routing"""
-    return Response({
-        "message": "Debug endpoint working",
-        "path": request.path,
-        "method": request.method,
-        "available_endpoints": [
-            "/api/resumes/process/",
-            "/api/resumes/save/",
-            "/api/resumes/latest/",
-            "/api/resumes/history/",
-            "/api/resumes/match/"
-        ]
-    }, status=status.HTTP_200_OK)
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
 def index(request):
     """Health check endpoint"""
     return Response({
@@ -168,16 +151,9 @@ def match_analysis(request):
 @parser_classes([JSONParser])
 @permission_classes([IsAuthenticated])
 def save_resume(request):
-    print(f"DEBUG: save_resume called with method: {request.method}")
-    print(f"DEBUG: save_resume request.data: {request.data}")
-    print(f"DEBUG: save_resume user: {request.user}")
-    
     try:
         resume_data = request.data.get('resume_data')
         filename = request.data.get('original_filename', 'resume.pdf')
-        
-        print(f"DEBUG: resume_data type: {type(resume_data)}")
-        print(f"DEBUG: filename: {filename}")
         
         # Save to your Resume model
         resume = Resume.objects.create(
@@ -187,11 +163,8 @@ def save_resume(request):
             created_at=timezone.now()
         )
         
-        print(f"DEBUG: Resume saved with ID: {resume.id}")
-        
         return Response({'message': 'Resume saved successfully'})
     except Exception as e:
-        print(f"DEBUG: Error in save_resume: {str(e)}")
         return Response({'error': str(e)}, status=400)
     
 
