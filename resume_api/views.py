@@ -223,6 +223,20 @@ def cover_letter_generator_custom(request):
         return Response({'cover_letter': cover_letter})
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_cover_letter_history(request):
+    """Get cover letter history for the authenticated user"""
+    try:
+        # For now, return empty array since we don't have a CoverLetter model yet
+        # This can be enhanced later when we add cover letter saving functionality
+        return Response({
+            'cover_letters': [],
+            'message': 'Cover letter history not implemented yet'
+        })
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
         
         
         
