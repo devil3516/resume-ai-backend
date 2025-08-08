@@ -8,6 +8,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+model = "llama3-70b-8192"
 
 def clean_json_string(s):
     # Remove trailing commas before } or ]
@@ -17,7 +18,7 @@ def clean_json_string(s):
     s = re.sub(r"```$", "", s).strip()
     return s
 
-def ats_extractor(resume_data, model="llama3-70b-8192"):
+def ats_extractor(resume_data, model=model):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
@@ -92,7 +93,7 @@ def ats_extractor(resume_data, model="llama3-70b-8192"):
     except json.JSONDecodeError:
         return {"error": "Failed to parse JSON from response", "raw": response.text}
 
-def match_analyzer(resume_data, job_description, model="llama3-70b-8192"):
+def match_analyzer(resume_data, job_description, model=model):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
@@ -177,6 +178,57 @@ def match_analyzer(resume_data, job_description, model="llama3-70b-8192"):
     except json.JSONDecodeError:
         return {"error": "Failed to parse JSON from response", "raw": response.text}
     
+
+def generate_cover_letter(resume_data, job_description, company_name, job_title, additional_prompts = None, model=model):
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    prompt = '''
+    You are an expert career coach and professional writer.
+    Write a customized, concise, and compelling cover letter for the following job application.
+    Use the applicant’s resume data to highlight relevant skills and experience. Tailor the tone and content to match the company’s culture and the job description. Follow modern cover letter best practices (no generic fluff, avoid repetition, strong opening, clear value proposition, and call to action).
+    ---
+    🧾 Resume Data:
+    {resume_data}
+    📄 Job Description:
+    {job_description}
+    🏢 Company Name:
+    {company_name}
+    🎯 Job Title:
+    {job_title}
+    💬 Additional Instructions or Custom Prompts:
+    {additional_prompts}
+    ---
+    ✍️ Output Format:
+    - Address the letter to the appropriate team or "Hiring Manager"
+    - Keep it under 400 words
+    - Use a professional but friendly tone
+    - Focus on how the applicant's skills meet the role's needs
+    - End with a call to action (e.g., request for interview or contact)
+    '''
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an expert career coach and professional writer. You are given a resume and a job description and you are to write a cover letter for the job."},
+            {"role": "user", "content": prompt.format(resume_data=resume_data, job_description=job_description, company_name=company_name, job_title=job_title, additional_prompts=additional_prompts)}
+        ],
+        "temperature": 0.1
+    }
+    try:
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload)
+        if response.status_code == 200:
+            result = response.json()
+            content = result['choices'][0]['message']['content'].strip()
+            return content
+        else:
+            return {"error": f"API request failed with status code {response.status_code}", "message": response.text}
+    except requests.exceptions.RequestException as e:
+        return {"error": "Request failed", "message": str(e)}
+    except json.JSONDecodeError:
+        return {"error": "Failed to parse JSON from response", "raw": response.text}
+
 
 
 

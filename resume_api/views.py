@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from pypdf import PdfReader
-from .resume_parser import ats_extractor, match_analyzer
+from .resume_parser import ats_extractor, match_analyzer, generate_cover_letter
 from django.conf import settings
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -17,6 +17,7 @@ from rest_framework.response import Response
 import json
 from django.utils import timezone
 from .models import Resume
+
 
 
 @api_view(['GET'])
@@ -192,3 +193,24 @@ def get_resume_history(request):
         })
     
     return Response({'resumes': resume_list})
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def cover_letter_generator_custom(request):
+    try:
+        data = request.data
+        resume_data = data.get('resume_data')
+        job_description = data.get('jobDescription')
+        company_name = data.get('companyName')
+        job_title = data.get('jobTitle')
+        additional_prompts = data.get('additionalPrompts')
+
+        #Generate Cover Letter with llm
+        cover_letter = generate_cover_letter(resume_data, job_description, company_name, job_title, additional_prompts)
+        return Response({'cover_letter': cover_letter})
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+        
+        
+        
