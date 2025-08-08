@@ -14,7 +14,6 @@ from .serializers import (
 )
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
-from resume_api.models import Resume
 
 User = get_user_model()
 
@@ -210,70 +209,3 @@ def logout(request):
             'success': False,
             'message': 'Logout failed. Please try again.'
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@api_view(['GET'])
-@permission_classes([permissions.IsAuthenticated])
-def get_user_progress(request):
-    """Get user progress through the resume workflow"""
-    try:
-        user = request.user
-        
-        # Check if user has uploaded any resumes
-        has_uploaded_resume = Resume.objects.filter(user=user).exists()
-        
-        # Check if user has parsed resumes (has resume_data)
-        has_parsed_resume = Resume.objects.filter(
-            user=user, 
-            resume_data__isnull=False
-        ).exclude(resume_data={}).exists()
-        
-        # For now, we'll assume job matching is completed if they have parsed resumes
-        # In a real implementation, you might want to track this separately
-        has_job_matched = has_parsed_resume  # This could be enhanced with actual job matching tracking
-        
-        progress_data = {
-            'hasUploadedResume': has_uploaded_resume,
-            'hasParsedResume': has_parsed_resume,
-            'hasJobMatched': has_job_matched,
-            'totalResumes': Resume.objects.filter(user=user).count(),
-            'lastActivity': None
-        }
-        
-        # Get last activity timestamp
-        latest_resume = Resume.objects.filter(user=user).order_by('-created_at').first()
-        if latest_resume:
-            progress_data['lastActivity'] = latest_resume.created_at.isoformat()
-        
-        return Response(progress_data, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        return Response(
-            {'error': 'Failed to fetch user progress', 'message': str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
-
-@api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
-def update_user_progress(request):
-    """Update user progress through the resume workflow"""
-    try:
-        user = request.user
-        step = request.data.get('step')  # 'upload', 'parse', 'match'
-        completed = request.data.get('completed', True)
-        
-        # For now, we'll just return success
-        # In a real implementation, you might want to store this in a separate model
-        # or update the Resume model with progress tracking
-        
-        return Response({
-            'success': True,
-            'message': f'Progress updated for step: {step}',
-            'step': step,
-            'completed': completed
-        }, status=status.HTTP_200_OK)
-        
-    except Exception as e:
-        return Response(
-            {'error': 'Failed to update user progress', 'message': str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
