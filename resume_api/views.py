@@ -148,22 +148,33 @@ def match_analysis(request):
 
 
 @api_view(['POST'])
+@parser_classes([JSONParser])
 @permission_classes([IsAuthenticated])
 def save_resume(request):
+    print(f"DEBUG: save_resume called with method: {request.method}")
+    print(f"DEBUG: save_resume request.data: {request.data}")
+    print(f"DEBUG: save_resume user: {request.user}")
+    
     try:
         resume_data = request.data.get('resume_data')
         filename = request.data.get('original_filename', 'resume.pdf')
         
+        print(f"DEBUG: resume_data type: {type(resume_data)}")
+        print(f"DEBUG: filename: {filename}")
+        
         # Save to your Resume model
-        Resume.objects.create(
+        resume = Resume.objects.create(
             user=request.user,
             resume_data=resume_data,
             original_filename=filename,
             created_at=timezone.now()
         )
         
+        print(f"DEBUG: Resume saved with ID: {resume.id}")
+        
         return Response({'message': 'Resume saved successfully'})
     except Exception as e:
+        print(f"DEBUG: Error in save_resume: {str(e)}")
         return Response({'error': str(e)}, status=400)
     
 
