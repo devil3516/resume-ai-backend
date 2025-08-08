@@ -150,6 +150,40 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
+
+# Allow all origins (for development/production flexibility)
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://34.100.162.224:3000",
+    "http://34.100.162.224:5173",
+    "http://34.100.162.224:8080",
+    "https://34.100.162.224:3000",
+    "https://34.100.162.224:5173",
+    "https://34.100.162.224:8080",
+]
+
+# Allow all origins for development (you can remove this in production)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Allow credentials (cookies, authorization headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Allow all methods
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Allow all headers
 CORS_ALLOW_HEADERS = [
     'accept',
     'accept-encoding',
@@ -163,8 +197,24 @@ CORS_ALLOW_HEADERS = [
     'sec-ch-ua',
     'sec-ch-ua-mobile',
     'sec-ch-ua-platform',
-    'referer'
+    'referer',
+    'access-control-allow-origin',
+    'access-control-allow-headers',
+    'access-control-allow-methods',
+    'access-control-allow-credentials',
 ]
+
+# Expose headers to the client
+CORS_EXPOSE_HEADERS = [
+    'content-type',
+    'content-length',
+    'content-disposition',
+    'authorization',
+    'x-csrftoken',
+]
+
+# CORS preflight cache time (in seconds)
+CORS_PREFLIGHT_MAX_AGE = 86400  # 24 hours
 
 # REST Framework settings
 REST_FRAMEWORK = {
