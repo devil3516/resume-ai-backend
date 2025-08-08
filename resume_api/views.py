@@ -201,10 +201,10 @@ def cover_letter_generator_custom(request):
     try:
         data = request.data
         resume_data = data.get('resume_data')
-        job_description = data.get('jobDescription')
-        company_name = data.get('companyName')
-        job_title = data.get('jobTitle')
-        additional_prompts = data.get('additionalPrompts')
+        job_description = data.get('job_description')
+        company_name = data.get('company_name')
+        job_title = data.get('job_title')
+        additional_prompts = data.get('additional_prompts')
 
         #Generate Cover Letter with llm
         cover_letter = generate_cover_letter(resume_data, job_description, company_name, job_title, additional_prompts)
