@@ -200,14 +200,26 @@ def get_resume_history(request):
 def cover_letter_generator_custom(request):
     try:
         data = request.data
-        resume_data = data.get('resume_data')
+        resume_data = data.get('resume_data')  # Now optional
         job_description = data.get('job_description')
         company_name = data.get('company_name')
         job_title = data.get('job_title')
         additional_prompts = data.get('additional_prompts')
 
-        #Generate Cover Letter with llm
-        cover_letter = generate_cover_letter(resume_data, job_description, company_name, job_title, additional_prompts)
+        # Validate required fields
+        if not job_description or not company_name or not job_title:
+            return Response({
+                'error': 'job_description, company_name, and job_title are required fields'
+            }, status=400)
+
+        # Generate Cover Letter with llm
+        cover_letter = generate_cover_letter(
+            resume_data=resume_data,
+            job_description=job_description,
+            company_name=company_name,
+            job_title=job_title,
+            additional_prompts=additional_prompts
+        )
         return Response({'cover_letter': cover_letter})
     except Exception as e:
         return Response({'error': str(e)}, status=400)

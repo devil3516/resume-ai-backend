@@ -179,19 +179,23 @@ def match_analyzer(resume_data, job_description, model=model):
         return {"error": "Failed to parse JSON from response", "raw": response.text}
     
 
-def generate_cover_letter(resume_data, job_description, company_name, job_title, additional_prompts = None, model=model):
+def generate_cover_letter(resume_data=None, job_description=None, company_name=None, job_title=None, additional_prompts=None, model=model):
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
 
-    prompt = '''
+    # Handle optional resume_data
+    resume_section = ""
+    if resume_data:
+        resume_section = f"🧾 Resume Data:\n{resume_data}\n"
+    else:
+        resume_section = "🧾 Resume Data: Not provided - write a general but professional cover letter\n"
+
+    prompt = f'''
     You are an expert career coach and professional writer.
     Write a customized, concise, and compelling cover letter for the following job application.
-    Use the applicant’s resume data to highlight relevant skills and experience. Tailor the tone and content to match the company’s culture and the job description. Follow modern cover letter best practices (no generic fluff, avoid repetition, strong opening, clear value proposition, and call to action).
-    ---
-    🧾 Resume Data:
-    {resume_data}
+    {resume_section}
     📄 Job Description:
     {job_description}
     🏢 Company Name:
@@ -199,7 +203,7 @@ def generate_cover_letter(resume_data, job_description, company_name, job_title,
     🎯 Job Title:
     {job_title}
     💬 Additional Instructions or Custom Prompts:
-    {additional_prompts}
+    {additional_prompts or "None provided"}
     ---
     ✍️ Output Format:
     - Address the letter to the appropriate team or "Hiring Manager"
@@ -207,12 +211,14 @@ def generate_cover_letter(resume_data, job_description, company_name, job_title,
     - Use a professional but friendly tone
     - Focus on how the applicant's skills meet the role's needs
     - End with a call to action (e.g., request for interview or contact)
+    - If no resume data is provided, write a general but professional cover letter that could be customized
     '''
+    
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an expert career coach and professional writer. You are given a resume and a job description and you are to write a cover letter for the job."},
-            {"role": "user", "content": prompt.format(resume_data=resume_data, job_description=job_description, company_name=company_name, job_title=job_title, additional_prompts=additional_prompts)}
+            {"role": "system", "content": "You are an expert career coach and professional writer. You write compelling, professional cover letters tailored to specific job applications."},
+            {"role": "user", "content": prompt}
         ],
         "temperature": 0.1
     }
