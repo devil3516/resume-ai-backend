@@ -21,6 +21,16 @@ from .models import Resume
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def test_routing(request):
+    """Simple test to verify URL routing is working"""
+    return Response({
+        "message": "URL routing is working!",
+        "path": request.path,
+        "method": request.method
+    }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def index(request):
     """Health check endpoint"""
     return Response({
