@@ -21,6 +21,23 @@ from .models import Resume
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def debug_urls(request):
+    """Debug endpoint to test URL routing"""
+    return Response({
+        "message": "Debug endpoint working",
+        "path": request.path,
+        "method": request.method,
+        "available_endpoints": [
+            "/api/resumes/process/",
+            "/api/resumes/save/",
+            "/api/resumes/latest/",
+            "/api/resumes/history/",
+            "/api/resumes/match/"
+        ]
+    }, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def index(request):
     """Health check endpoint"""
     return Response({
