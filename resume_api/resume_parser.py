@@ -212,6 +212,7 @@ def generate_cover_letter(resume_data=None, job_description=None, company_name=N
     - Focus on how the applicant's skills meet the role's needs
     - End with a call to action (e.g., request for interview or contact)
     - If no resume data is provided, write a general but professional cover letter that could be customized
+    - Do not add any extra test like preamble or something only give the approptiate cover letter
     '''
     
     payload = {
