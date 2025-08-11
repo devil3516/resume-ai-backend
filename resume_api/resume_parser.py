@@ -29,7 +29,8 @@ def ats_extractor(resume_data, model=model):
     - name
     - email
     - phone
-    - linkedin
+    - linkedin (if available)
+    - github (if available)
     - address (if available)
     - portfolio (if available)
     - summary (2-3 sentence professional summary)
