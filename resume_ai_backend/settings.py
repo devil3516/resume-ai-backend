@@ -173,6 +173,12 @@ CORS_ALLOW_ALL_ORIGINS = True
 # Allow credentials (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True
 
+
+# Allow regex-based origins
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https:\/\/.*\.lovable\.app$",
+]
+
 # Allow all methods
 CORS_ALLOW_METHODS = [
     'DELETE',
