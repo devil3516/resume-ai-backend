@@ -25,7 +25,7 @@ def ats_extractor(resume_data, model=model):
     }
 
     prompt = '''
-    You are an AI bot designed to act as a professional for parsing resumes. You are given a resume and your job is to extract the following information:
+    You are an AI bot designed to act as a professional for parsing resumes. You are given a resume data and your job is to extract the following information:
     - name
     - email
     - phone
@@ -48,6 +48,7 @@ def ats_extractor(resume_data, model=model):
         - name (project name)
         - description (project description)
         - technologies (if available)
+        - Links: Github, or any live link ( if available)
     
     Only return valid JSON. Ensure all strings are properly closed and formatted. Do not include trailing commas, incomplete objects, or markdown formatting.
     

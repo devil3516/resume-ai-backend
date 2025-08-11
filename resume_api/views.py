@@ -17,6 +17,7 @@ from rest_framework.response import Response
 import json
 from django.utils import timezone
 from .models import Resume
+from .utils.pdf_extraxtion import extract_clean_text
 
 
 
@@ -108,10 +109,10 @@ def process_resume(request):
 
 def _read_file_from_path(path):
     """Extract text from PDF file"""
-    reader = PdfReader(path)
-    data = ""
-    for page in reader.pages:
-        data += page.extract_text()
+    
+    with open(path, "rb") as f:
+        pdf_bytes = f.read()
+    data = extract_clean_text(pdf_bytes)
     return data
 
 
