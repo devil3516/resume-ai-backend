@@ -152,20 +152,21 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Allow all origins (for development/production flexibility)
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://localhost:5173",
-#     "http://127.0.0.1:3000",
-#     "http://127.0.0.1:5173",
-#     "http://localhost:8080",
-#     "http://127.0.0.1:8080",
-#     "http://34.100.162.224:3000",
-#     "http://34.100.162.224:5173",
-#     "http://34.100.162.224:8080",
-#     "https://34.100.162.224:3000",
-#     "https://34.100.162.224:5173",
-#     "https://34.100.162.224:8080",
-# ]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://localhost:8080",
+    "http://127.0.0.1:8080",
+    "http://34.100.162.224:3000",
+    "http://34.100.162.224:5173",
+    "http://34.100.162.224:8080",
+    "https://34.100.162.224:3000",
+    "https://34.100.162.224:5173",
+    "https://34.100.162.224:8080",
+    "https://preview--resume-parser-django.lovable.app",
+]
 
 # Allow all origins for development (you can remove this in production)
 CORS_ALLOW_ALL_ORIGINS = True
