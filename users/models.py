@@ -26,12 +26,15 @@ class CustomUserManager(BaseUserManager):
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    # date_joined is already inherited from AbstractUser, so we don't need to redefine it
     is_active = models.BooleanField(default=True)
     # Make username optional
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
     profile_picture = models.ImageField(upload_to='profile_pictures/', blank=True, null=True)
-    
+    resume_analyzed = models.IntegerField(default=0)
+    job_analyzed = models.IntegerField(default=0)
+    cover_letters = models.IntegerField(default=0)
+    success_rate = models.FloatField(default=0.0)
     objects = CustomUserManager()
     
     USERNAME_FIELD = 'email'

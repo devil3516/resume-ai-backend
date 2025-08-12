@@ -13,5 +13,6 @@ urlpatterns = [
     path('cover-letters/generate/', views.cover_letter_generator_custom, name='cover_letter_generate'),
     path('cover-letters/regenerate/', views.cover_letter_generator_custom, name='cover_letter_regenerate'),
     path('cover-letters/history/', views.get_cover_letter_history, name='cover_letter_history'),
+    path('user-stats/', views.user_stats, name='user_stats'),
 ]
 

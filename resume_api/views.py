@@ -18,6 +18,7 @@ import json
 from django.utils import timezone
 from .models import Resume
 from .utils.pdf_extraxtion import extract_clean_text
+from users.models import User
 
 
 
@@ -89,6 +90,10 @@ def process_resume(request):
         
         # Parse the resume
         parsed_data = ats_extractor(data)
+        if parsed_data:
+            user = User.objects.get(id=request.user.id)
+            user.resume_analyzed += 1
+            user.save()
         
         # Clean up the temporary file
         if os.path.exists(file_path):
@@ -137,6 +142,10 @@ def match_analysis(request):
         
         # Perform match analysis using LLM
         match_result = match_analyzer(resume_data, job_description)
+        if match_result:
+            user = User.objects.get(id=request.user.id)
+            user.job_analyzed += 1
+            user.save()
         
         return Response(match_result, status=status.HTTP_200_OK)
         
@@ -201,7 +210,7 @@ def get_resume_history(request):
 def cover_letter_generator_custom(request):
     try:
         data = request.data
-        resume_data = data.get('resume_data')  # Now optional
+        resume_data = data.get('resume_data') # Now optional
         job_description = data.get('job_description')
         company_name = data.get('company_name')
         job_title = data.get('job_title')
@@ -221,6 +230,10 @@ def cover_letter_generator_custom(request):
             job_title=job_title,
             additional_prompts=additional_prompts
         )
+        if cover_letter:
+            user = User.objects.get(id=request.user.id)
+            user.cover_letters += 1
+            user.save()
         return Response({'cover_letter': cover_letter})
     except Exception as e:
         return Response({'error': str(e)}, status=400)
@@ -238,6 +251,32 @@ def get_cover_letter_history(request):
         })
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_stats(request):
+    """
+    Get user statistics including resume analysis, job matches, cover letters, and success rate
+    """
+    try:
+        user = request.user
         
+        # Get statistics from user model
+        stats = {
+            'resumes_analyzed': user.resume_analyzed,
+            'job_matches': user.job_analyzed,
+            'cover_letters': user.cover_letters,
+            'success_rate': user.success_rate
+        }
         
+        return Response({
+            'success': True,
+            'stats': stats
+        }, status=status.HTTP_200_OK)
         
+    except Exception as e:
+        print(f"User stats error: {e}")
+        return Response({
+            'success': False,
+            'message': 'Failed to fetch user statistics'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

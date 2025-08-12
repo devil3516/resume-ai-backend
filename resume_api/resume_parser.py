@@ -50,6 +50,16 @@ def ats_extractor(resume_data, model=model):
         - description (project description)
         - technologies (if available)
         - Links: Github, or any live link ( if available)
+    - certifications (if available): list of certifications with
+        - name (certification name)
+        - issuer (certification issuer)
+        - issue_date (if available)
+        - and pursuiing (if available)
+    - awards (if available): list of awards with
+        - name (award name)
+        - description (award description)
+        - year (award year) 
+
     
     Only return valid JSON. Ensure all strings are properly closed and formatted. Do not include trailing commas, incomplete objects, or markdown formatting.
     
@@ -197,30 +207,42 @@ def generate_cover_letter(resume_data=None, job_description=None, company_name=N
     prompt = f'''
     You are an expert career coach and professional writer.
     Write a customized, concise, and compelling cover letter for the following job application.
+    
     {resume_section}
+    
     📄 Job Description:
     {job_description}
+    
     🏢 Company Name:
     {company_name}
+    
     🎯 Job Title:
     {job_title}
+    
     💬 Additional Instructions or Custom Prompts:
     {additional_prompts or "None provided"}
+    
     ---
-    ✍️ Output Format:
+    ✍️ CRITICAL INSTRUCTIONS:
+    - DO NOT add any preamble, introduction text, or explanatory text
+    - DO NOT say "Here is a cover letter for..." or similar phrases
+    - Start DIRECTLY with the cover letter content
+    - Begin with "Dear Hiring Manager" or appropriate salutation
+    - Write ONLY the cover letter content, nothing else
+    
+    ✍️ Cover Letter Requirements:
     - Address the letter to the appropriate team or "Hiring Manager"
     - Keep it under 400 words
     - Use a professional but friendly tone
     - Focus on how the applicant's skills meet the role's needs
     - End with a call to action (e.g., request for interview or contact)
     - If no resume data is provided, write a general but professional cover letter that could be customized
-    - Do not add any extra test like preamble or something only give the approptiate cover letter
     '''
     
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an expert career coach and professional writer. You write compelling, professional cover letters tailored to specific job applications."},
+            {"role": "system", "content": "You are an expert career coach and professional writer. You write compelling, professional cover letters tailored to specific job applications. IMPORTANT: Output ONLY the cover letter content with no preamble, introduction, or explanatory text. Start directly with the salutation."},
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.1
