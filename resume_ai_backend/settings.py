@@ -12,8 +12,12 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os 
+import sys
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+sys.path.append(os.path.join(BASE_DIR, 'interview_agent'))
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -44,7 +48,6 @@ INSTALLED_APPS = [
     "resume_api",
     "payments",
     "users",
-  
 ]
 
 MIDDLEWARE = [
@@ -146,6 +149,16 @@ AUTHENTICATION_BACKENDS = [
 
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# REST Framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
+}
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True

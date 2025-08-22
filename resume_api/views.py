@@ -1,23 +1,16 @@
-from django.shortcuts import render
 import os
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
 from rest_framework.decorators import api_view, parser_classes, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from pypdf import PdfReader
-from .resume_parser import ats_extractor, match_analyzer, generate_cover_letter
+from .resume_parser import ats_extractor
+from .match_analyzer import match_analyzer
+from .generate_cover_letter import generate_cover_letter
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-import json
 from django.utils import timezone
 from .models import Resume
-from .utils.pdf_extraxtion import extract_clean_text
+from .utils.pdf_extraction import extract_clean_text
 from users.models import User
 
 

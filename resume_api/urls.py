@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import interview_view
 
 urlpatterns = [
     path('', views.index, name='index'),
@@ -14,5 +15,8 @@ urlpatterns = [
     path('cover-letters/regenerate/', views.cover_letter_generator_custom, name='cover_letter_regenerate'),
     path('cover-letters/history/', views.get_cover_letter_history, name='cover_letter_history'),
     path('user-stats/', views.user_stats, name='user_stats'),
+    path('interview/start/', interview_view.start_interview, name='start_interview'),
+    path('interview/respond/', interview_view.response_to_question, name='respond_to_question'),
+    path('interview/status/<str:user_id>/', interview_view.interview_status, name='interview_status'),
 ]
 
