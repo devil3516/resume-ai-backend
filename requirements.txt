@@ -27,3 +27,4 @@ langchain-core>=0.3.8
 langgraph-sdk>=0.1.32
 sentence-transformers>=2.2.0
 torch>=2.0.0
+langgraph-checkpoint-sqlite

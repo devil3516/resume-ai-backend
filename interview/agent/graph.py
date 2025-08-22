@@ -10,10 +10,9 @@ from langgraph.graph import END, StateGraph
 from langgraph.runtime import Runtime
 from langgraph.store.base import BaseStore
 
-from memory_agent import tools, utils
-from memory_agent.context import Context
-from memory_agent.state import State
-from memory_agent.prompts import (
+from .context import Context
+from .state import State
+from .prompts import (
     START_PROMPT, 
     EVALUATE_ANSWER_PROMPT, 
     FOLLOW_UP_PROMPT, 
@@ -268,6 +267,30 @@ async def evaluate_answer(state:State, runtime:Runtime[Context]) -> dict:
             "voice_feedback": voice_analysis.get("voice_feedback")
         }
     
+
+async def follow_up_question(state:State, runtime:Runtime[Context]) -> dict:
+    """Ask a follow-up question to the user."""
+    context = runtime.context
+
+    prompt = FOLLOW_UP_PROMPT.format(
+        job_title=state.job_title,
+        company=state.company,
+        job_description=state.job_description,
+        interview_type=state.interview_type.value,
+        experience_level=state.experience_level.value,
+        conversation_history="\n".join([msg.content for msg in state.messages if hasattr(msg, 'content')])
+    )
+
+    response = await llm.ainvoke([{"role": "system", "content": prompt}])
+    follow_up_question = response.content
+
+    return {
+        "messages": [{"role": "assistant", "content": follow_up_question}],
+        "current_question": follow_up_question,
+        "question_count": state.question_count + 1,
+        "current_state": "awaiting_response"
+    }
+
 async def end_interview(state:State, runtime:Runtime[Context]) -> dict:
     """End the interview with a closing message."""
     context = runtime.context
@@ -315,6 +338,7 @@ builder.add_node("start_interview", start_interview)
 builder.add_node("ask_question", ask_question)
 builder.add_node("evaluate_answer", evaluate_answer)
 builder.add_node("end_interview", end_interview)
+builder.add_node("follow_up", follow_up_question)
 
 #Define Edges
 builder.set_entry_point("start_interview")
@@ -329,6 +353,12 @@ builder.add_conditional_edges(
     "follow_up",
     route_after_follow_up,
     ["ask_question", "end_interview"]
+)
+
+builder.add_conditional_edges(
+    "ask_question",
+    route_after_evaluation,
+    ["follow_up", "ask_question", "end_interview"]
 )
 
 builder.add_edge("end_interview", END)

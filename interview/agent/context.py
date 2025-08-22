@@ -40,11 +40,11 @@ from dataclasses import dataclass, field, fields
 from typing_extensions import Annotated
 
 from langchain_groq import ChatGroq   # if you're using Groq
-from langchain_openai import ChatOpenAI  # if OpenAI
+ # if OpenAI
 from langchain_anthropic import ChatAnthropic  # if Anthropic
 from langgraph.checkpoint.sqlite import SqliteSaver  # <-- for memory
 from enum import Enum
-from memory_agent import prompts
+import interview.agent.prompts as prompts
 
 class InterviewType(Enum):
     """The type of interview to conduct."""
