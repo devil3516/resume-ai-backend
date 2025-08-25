@@ -1,38 +1,3 @@
-# """Define the runtime context information for the agent."""
-
-# import os
-# from dataclasses import dataclass, field, fields
-
-# from typing_extensions import Annotated
-
-# from memory_agent import prompts
-
-
-# @dataclass(kw_only=True)
-# class Context:
-#     """Main context class for the memory graph system."""
-
-#     user_id: str = "default"
-#     """The ID of the user to remember in the conversation."""
-
-#     model: Annotated[str, {"__template_metadata__": {"kind": "llm"}}] = field(
-#         default="groq/llama3-8b-8192",
-#         metadata={
-#             "description": "The name of the language model to use for the agent. "
-#             "Should be in the form: provider/model-name."
-#         },
-#     )
-
-#     system_prompt: str = prompts.SYSTEM_PROMPT
-
-#     def __post_init__(self):
-#         """Fetch env vars for attributes that were not passed as args."""
-#         for f in fields(self):
-#             if not f.init:
-#                 continue
-
-#             if getattr(self, f.name) == f.default:
-#                 setattr(self, f.name, os.environ.get(f.name.upper(), f.default))
 """Define the runtime context information for the agent."""
 
 import os
@@ -92,14 +57,17 @@ class Context:
     interview_type: InterviewType = field(default = InterviewType.Mixed)
     """The type of interview to conduct."""
 
-    experience_level: ExperienceLevel = field(default = ExperienceLevel.ENTRY)
+    experience_level: ExperienceLevel = field(default = ExperienceLevel.MID)
     """The experiance level of the candidate."""
     
     interview_duration: int = field(default = 30)
     """The duration of the interview in minutes."""
 
-    voice_enabled: bool = field(default = False)
-    """Whether voice is enabled for the interview."""
+    voice_analysis_enabled: bool = field(default = False)
+    """Whether voice analysis is enabled for the interview."""
+
+    interview_id: str = field(default = "default_interview_id")
+    """The id of the interview."""
 
 
     def __post_init__(self):
@@ -121,16 +89,6 @@ class Context:
             return ChatGroq(
                 model=self.model.split("/", 1)[1],
                 api_key=os.environ.get("GROQ_API_KEY")
-            )
-        elif self.model.startswith("openai/"):
-            return ChatOpenAI(
-                model=self.model.split("/", 1)[1],
-                api_key=os.environ.get("OPENAI_API_KEY")
-            )
-        elif self.model.startswith("anthropic/"):
-            return ChatAnthropic(
-                model=self.model.split("/", 1)[1],
-                api_key=os.environ.get("ANTHROPIC_API_KEY")
             )
         else:
             raise ValueError(f"Unsupported model provider in {self.model}")

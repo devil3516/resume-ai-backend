@@ -1,6 +1,7 @@
 """Define default prompts."""
 
-SYSTEM_PROMPT = """You are a professional interview coach conducting a {interview_type} mock interview for the {job_title} position at {company}. 
+SYSTEM_PROMPT = """
+You are a professional interview coach conducting a {type_specific_instructions} mock interview for the {job_title} position at {company}. 
 The candidate has {experience_level} experience level.
 
 Job Description:
@@ -16,7 +17,8 @@ The interview should last approximately {interview_duration} minutes.
 Current conversation history:
 {conversation_history}
 
-System Time: {time}"""
+System Time: {time}
+"""
 
 TECHNICAL_INSTRUCTIONS = """
 Focus on technical skills, problem-solving abilities, and specific knowledge related to {job_title}.
@@ -42,7 +44,6 @@ The interview will last approximately {interview_duration} minutes. Are you read
 """
 
 
-
 EVALUATE_ANSWER_PROMPT = """
 Evaluate the candidate's answer to the {interview_type} interview question.
 
@@ -64,19 +65,16 @@ FOLLOW_UP_QUESTION: [follow-up question if needed, else leave empty]
 """
 
 FOLLOW_UP_PROMPT = """
-Based on the candidate's previous answer: "{user_response}", 
-ask a relevant follow-up question to dig deeper into their knowledge or experience.
+Based on the candidate's previous answer: "{user_response}", ask a single, concise follow-up question to dig deeper into their knowledge or experience.
 
 Job Description Context:
 {job_description}
 
-Keep the question professional, relevant to the {interview_type} interview for {job_title} position, and conversational in tone.
+IMPORTANT: Output ONLY the follow-up question text. Do not include any explanation, preface, numbering, or extra prose.
 """
 
-
 NEXT_QUESTION_PROMPT = """
-Based on the conversation history and the {interview_type} interview for {job_title} at {company},
-generate the next appropriate interview question.
+Based on the conversation history and the {interview_type} interview for {job_title} at {company}, generate the next appropriate interview question.
 
 Job Description:
 {job_description}
@@ -86,13 +84,14 @@ The candidate has {experience_level} experience level.
 Conversation history:
 {conversation_history}
 
-Generate a question that:
-1. Is relevant to the job title and job description
-2. Matches the interview type and experience level
-3. Builds upon previous questions but doesn't repeat them
-4. Helps assess the candidate's suitability for the position
-"""
+Requirements for the next question:
+- Relevant to the job title and job description
+- Matches the interview type and experience level
+- Builds upon previous questions but doesn't repeat them
+- Helps assess the candidate's suitability for the position
 
+IMPORTANT: Output ONLY the question text. Do not include any explanation, preface like "Here's a question:", bullet points, or analysis.
+"""
 
 CLOSING_PROMPT = """
 The interview is now complete. Provide a closing statement that includes:

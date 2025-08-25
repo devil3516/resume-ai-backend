@@ -1,16 +1,17 @@
-"""Graphs that extract memories on a schedule."""
+"""Interview StateGraph definition."""
 
-import asyncio
 import logging
-from datetime import datetime
-from typing import cast, Literal, Optional,Dict
+import os
+from typing import Literal
+from langgraph.graph import END, StateGraph
+from langchain_core.messages import HumanMessage, AIMessage
 
 from langchain.chat_models import init_chat_model
 from langgraph.graph import END, StateGraph
-from langgraph.runtime import Runtime
-from langgraph.store.base import BaseStore
+# from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
+from dotenv import load_dotenv
 
-from .context import Context
 from .state import State
 from .prompts import (
     START_PROMPT, 
@@ -25,10 +26,22 @@ from .prompts import (
     MIXED_INSTRUCTIONS
 )
 
-logger = logging.getLogger(__name__)
+# Ensure .env is loaded even in ASGI import path
+load_dotenv()
+
+logger = logging.getLogger(__name__) 
 
 # Initialize the language model to be used for memory extraction
-llm = init_chat_model()
+MODEL_NAME = os.environ.get("LLM_MODEL", "groq/llama3-8b-8192")
+if "/" in MODEL_NAME:
+    provider, model = MODEL_NAME.split("/", 1)
+    extra = {}
+    if provider == "groq":
+        extra["api_key"] = os.environ.get("GROQ_API_KEY")
+    llm = init_chat_model(model=model, model_provider=provider, **extra)
+else:
+    provider = os.environ.get("LLM_PROVIDER", "openai")
+    llm = init_chat_model(model=MODEL_NAME, model_provider=provider)
 
 def calculate_max_questions(duration: int) -> int:
     """Calculate number of questions based on interview duration."""
@@ -41,121 +54,26 @@ def calculate_max_questions(duration: int) -> int:
     else:
         return 15
 
-# async def call_model(state: State, runtime: Runtime[Context]) -> dict:
-#     """Extract the user's state from the conversation and update the memory."""
-#     user_id = runtime.context.user_id
-#     model = runtime.context.model
-#     system_prompt = runtime.context.system_prompt
-
-#     # Retrieve the most recent memories for context
-#     memories = await cast(BaseStore, runtime.store).asearch(
-#         ("memories", user_id),
-#         query=str([m.content for m in state.messages[-3:]]),
-#         limit=10,
-#     )
-
-#     # Format memories for inclusion in the prompt
-#     formatted = "\n".join(
-#         f"[{mem.key}]: {mem.value} (similarity: {mem.score})" for mem in memories
-#     )
-#     if formatted:
-#         formatted = f"""
-# <memories>
-# {formatted}
-# </memories>"""
-
-#     # Prepare the system prompt with user memories and current time
-#     # This helps the model understand the context and temporal relevance
-#     sys = system_prompt.format(user_info=formatted, time=datetime.now().isoformat())
-
-#     # Invoke the language model with the prepared prompt and tools
-#     # "bind_tools" gives the LLM the JSON schema for all tools in the list so it knows how
-#     # to use them.
-#     msg = await llm.bind_tools([tools.upsert_memory]).ainvoke(
-#         [{"role": "system", "content": sys}, *state.messages],
-#         context=utils.split_model_and_provider(model),
-#     )
-#     return {"messages": [msg]}
-
-
-# async def store_memory(state: State, runtime: Runtime[Context]):
-#     # Extract tool calls from the last message
-#     tool_calls = getattr(state.messages[-1], "tool_calls", [])
-
-#     # Concurrently execute all upsert_memory calls
-#     saved_memories = await asyncio.gather(
-#         *(
-#             tools.upsert_memory(
-#                 **tc["args"],
-#                 user_id=runtime.context.user_id,
-#                 store=cast(BaseStore, runtime.store),
-#             )
-#             for tc in tool_calls
-#         )
-#     )
-
-#     # Format the results of memory storage operations
-#     # This provides confirmation to the model that the actions it took were completed
-#     results = [
-#         {
-#             "role": "tool",
-#             "content": mem,
-#             "tool_call_id": tc["id"],
-#         }
-#         for tc, mem in zip(tool_calls, saved_memories)
-#     ]
-#     return {"messages": results}
-
-
-# def route_message(state: State):
-#     """Determine the next step based on the presence of tool calls."""
-#     msg = state.messages[-1]
-#     if getattr(msg, "tool_calls", None):
-#         # If there are tool calls, we need to store memories
-#         return "store_memory"
-#     # Otherwise, finish; user can send the next message
-#     return END
-
-
-# # Create the graph + all nodes
-# builder = StateGraph(State, context_schema=Context)
-
-# # Define the flow of the memory extraction process
-# builder.add_node(call_model)
-# builder.add_edge("__start__", "call_model")
-# builder.add_node(store_memory)
-# builder.add_conditional_edges("call_model", route_message, ["store_memory", END])
-# # Right now, we're returning control to the user after storing a memory
-# # Depending on the model, you may want to route back to the model
-# # to let it first store memories, then generate a response
-# builder.add_edge("store_memory", "call_model")
-# graph = builder.compile()
-# graph.name = "MemoryAgent"
-
-
-# __all__ = ["graph"]
-
-
-async def start_interview(state: State, runtime: Runtime[Context]) -> dict:
+async def start_interview(state: State) -> dict:
     """Start the interview with a greeting."""
-    context = runtime.context
+    max_questions = calculate_max_questions(state.interview_duration)
 
-    max_questions = calculate_max_questions(context.interview_duration)
-    # Get type-specific instructions
-    type_instructions_map = {
-        "technical": TECHNICAL_INSTRUCTIONS,
-        "behavioral": BEHAVIORAL_INSTRUCTIONS,
-        "mixed": MIXED_INSTRUCTIONS
-    }
-    
-    type_instructions = type_instructions_map.get(context.interview_type.value, MIXED_INSTRUCTIONS)
+    interview_type_value = state.interview_type.value if hasattr(state.interview_type, "value") else str(state.interview_type)
 
     greetings = START_PROMPT.format(
-        interview_type=context.interview_type.value,
-        job_title=context.job_title,
-        company=context.company,
-        experience_level=context.experience_level.value,
-        interview_duration=context.interview_duration
+        interview_type=interview_type_value,
+        job_title=state.job_title,
+        company=state.company,
+        experience_level=state.experience_level.value if hasattr(state.experience_level, "value") else str(state.experience_level),
+        interview_duration=state.interview_duration,
+    )
+
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    interview_id = state.interview_id
+
+    await channel_layer.group_send(
+        f"interview_{interview_id}", {"type": "interview.message", "message": greetings}
     )
 
     return {
@@ -163,47 +81,46 @@ async def start_interview(state: State, runtime: Runtime[Context]) -> dict:
         "interview_started": True,
         "current_state": "awaiting_response",
         "max_questions": max_questions,
-        "job_title": context.job_title,
-        "company": context.company,
-        "job_description": context.job_description,
-        "interview_type": context.interview_type,
-        "experience_level": context.experience_level,
-        "interview_duration": context.interview_duration,
-        "voice_analysis_enabled": context.voice_analysis_enabled
+        "job_title": state.job_title,
+        "company": state.company,
+        "job_description": state.job_description,
+        "interview_type": state.interview_type,
+        "experience_level": state.experience_level,
+        "interview_duration": state.interview_duration,
+        "voice_analysis_enabled": state.voice_analysis_enabled,
+        "interview_id": interview_id,
     }
 
-async def ask_question(state: State, runtime: Runtime[Context]) -> dict:
+async def ask_question(state: State) -> dict:
     """Ask a question to the user."""
-    context = runtime.context
-
-    # Get type-specific instructions
-    type_instructions = {
-        "technical": "Focus on technical skills and knowledge.",
-        "behavioral": "Focus on behavioral and situational questions.",
-        "mixed": "Balance between technical and behavioral questions."
-    }
-
     prompt = NEXT_QUESTION_PROMPT.format(
         job_title=state.job_title,
         company=state.company,
         job_description=state.job_description,
-        interview_type=state.interview_type.value,
-        experience_level=state.experience_level.value,
+        interview_type=state.interview_type.value if hasattr(state.interview_type, "value") else str(state.interview_type),
+        experience_level=state.experience_level.value if hasattr(state.experience_level, "value") else str(state.experience_level),
         conversation_history="\n".join([msg.content for msg in state.messages if hasattr(msg, 'content')])
     )
 
-    #Generate question using llm
     response = await llm.ainvoke([{"role": "system", "content": prompt}])
     question = response.content
+
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    interview_id = state.interview_id
+
+    await channel_layer.group_send(
+        f"interview_{interview_id}", {"type": "interview.message", "message": question}
+    )
 
     return {
         "messages": [{"role": "assistant", "content": question}],
         "current_question": question,
         "question_count": state.question_count + 1,
-        "current_state": "awaiting_response"
+        "current_state": "awaiting_response",
     }
 
-async def analyze_voice_response(state:State, runtime:Runtime[Context]) -> dict:
+async def analyze_voice_response(state: State) -> dict:
     """Analyze the voice response of the user."""
     if not state.voice_analysis_enabled or not state.user_response:
         return {"voice_feedback": None}
@@ -213,18 +130,14 @@ async def analyze_voice_response(state:State, runtime:Runtime[Context]) -> dict:
 
     return {"voice_feedback":response.content}
 
-async def evaluate_answer(state:State, runtime:Runtime[Context]) -> dict:
+async def evaluate_answer(state: State) -> dict:
     """Evaluate the answer of the user."""
-    context = runtime.context
-
-    #Analyze voice if enabeled
-    voice_analysis = await analyze_voice_response(state, runtime)
+    voice_analysis = await analyze_voice_response(state)
     prompt = EVALUATE_ANSWER_PROMPT.format(
-        job_description = state.job_description,
-        job_title = state.job_title,
-        interview_type = state.interview_type.value,
-        current_question = state.current_question,
-        user_response = state.user_response,
+        job_description=state.job_description,
+        job_title=state.job_title,
+        interview_type=state.interview_type.value if hasattr(state.interview_type, "value") else str(state.interview_type),
+        current_question=state.current_question,
     )
 
     response = await llm.ainvoke([{"role": "system", "content": prompt}])
@@ -242,7 +155,7 @@ async def evaluate_answer(state:State, runtime:Runtime[Context]) -> dict:
             follow_up_needed = "yes" in line.lower()
         elif line.startswith("FOLLOW_UP_QUESTION:"):
             follow_up_question = line.replace("FOLLOW_UP_QUESTION:","").strip()
-    
+
     #Add voice feedback if possible
     if voice_analysis.get("voice_feedback"):
         feedback += f"\n\nVoice Feedback: {voice_analysis['voice_feedback']}"
@@ -250,130 +163,113 @@ async def evaluate_answer(state:State, runtime:Runtime[Context]) -> dict:
     #prepare response
     response_content = f"Feedback: {feedback}"
 
-    if follow_up_needed and follow_up_question:
-        response_content += f"\n\nFOLLOW_UP_QUESTION: {follow_up_question}"
-        return{
-            "messages": [{"role": "assistant", "content": response_content}],
-            "follow_up_needed": True,
-            "current_question": follow_up_question,
-            "current_state": "awaiting_response",
-            "voice_feedback": voice_analysis.get("voice_feedback")
-        }
-    else:
-        return {
-            "messages": [{"role": "assistant", "content": response_content}],
-            "follow_up_needed": False,
-            "current_state": "ask_question",
-            "voice_feedback": voice_analysis.get("voice_feedback")
-        }
-    
+    # Broadcast feedback immediately to the client over WS
+    try:
+        from channels.layers import get_channel_layer
+        channel_layer = get_channel_layer()
+        interview_id = state.interview_id
+        # Fire-and-forget broadcast; ignore if channel layer not available
+        await channel_layer.group_send(
+            f"interview_{interview_id}",
+            {"type": "interview.message", "message": response_content},
+        )
+    except Exception:
+        pass
 
-async def follow_up_question(state:State, runtime:Runtime[Context]) -> dict:
-    """Ask a follow-up question to the user."""
-    context = runtime.context
-
-    prompt = FOLLOW_UP_PROMPT.format(
-        job_title=state.job_title,
-        company=state.company,
-        job_description=state.job_description,
-        interview_type=state.interview_type.value,
-        experience_level=state.experience_level.value,
-        conversation_history="\n".join([msg.content for msg in state.messages if hasattr(msg, 'content')])
-    )
-
-    response = await llm.ainvoke([{"role": "system", "content": prompt}])
-    follow_up_question = response.content
-
-    return {
-        "messages": [{"role": "assistant", "content": follow_up_question}],
-        "current_question": follow_up_question,
-        "question_count": state.question_count + 1,
-        "current_state": "awaiting_response"
+    result: dict = {
+        "messages": [{"role": "assistant", "content": response_content}],
+        "follow_up_needed": follow_up_needed,
+        "current_state": "ask_question",
+        "voice_feedback": voice_analysis.get("voice_feedback"),
     }
 
-async def end_interview(state:State, runtime:Runtime[Context]) -> dict:
-    """End the interview with a closing message."""
-    context = runtime.context
+    if follow_up_needed and follow_up_question:
+        result.update({
+            "current_question": follow_up_question,
+            "current_state": "awaiting_response",
+        })
+    return result
 
+async def follow_up(state: State) -> dict:
+    """Ask a follow-up question when needed to keep a human-like flow."""
+    question = state.current_question or "Could you elaborate a bit more on your previous answer?"
+
+    from channels.layers import get_channel_layer
+    channel_layer = get_channel_layer()
+    interview_id = state.interview_id
+
+    await channel_layer.group_send(
+        f"interview_{interview_id}", {"type": "interview.message", "message": question}
+    )
+
+    return {
+        "messages": [{"role": "assistant", "content": question}],
+        "current_state": "awaiting_response",
+    }
+
+async def end_interview(state: State) -> dict:
+    """End the interview with a closing message."""
     prompt = CLOSING_PROMPT.format(
         job_title=state.job_title,
         company = state.company,
-        interview_type = state.interview_type.value
+        interview_type = state.interview_type.value if hasattr(state.interview_type, "value") else str(state.interview_type),
     )
-    #Generate closing remarks using llm
     response = await llm.ainvoke([{"role": "system", "content": prompt}])
     closing = response.content
     return {
         "messages": [{"role": "assistant", "content": closing}],
-        "current_state": "end"
+        "current_state": "end",
     }
 
+
 def route_after_start(state:State) -> Literal["ask_question", "end"]:
-    """Route after interview start."""
     if state.interview_started:
         return "ask_question"
     return "end"
 
-def route_after_evaluation(state:State) -> Literal["ask_question","follow_up" "end"]:
-    """Route after answer evaluation."""
-    if state.follow_up_needed:
-        return "follow_up"
-    elif state.question_count >= state.max_questions:
-        return "end"
-    else:
-        return "ask_question"
-    
 
-def route_after_follow_up(state:State) -> Literal["ask_question", "end"]:
-    """Route after follow-up question."""
+def route_after_evaluation(state:State) -> Literal["follow_up", "ask_question", "end"]:
+    if getattr(state, "follow_up_needed", False):
+        return "follow_up"
     if state.question_count >= state.max_questions:
         return "end"
     return "ask_question"
 
-#Create the interview graph
-builder = StateGraph(State, context_schema=Context)
+# Create the interview graph builder
+builder = StateGraph(State)
 
-#Define Nodes
+# Define Nodes
 builder.add_node("start_interview", start_interview)
 builder.add_node("ask_question", ask_question)
 builder.add_node("evaluate_answer", evaluate_answer)
+builder.add_node("follow_up", follow_up)
 builder.add_node("end_interview", end_interview)
-builder.add_node("follow_up", follow_up_question)
 
-#Define Edges
+# Define Edges
 builder.set_entry_point("start_interview")
 
 builder.add_conditional_edges(
     "start_interview",
     route_after_start,
-    [ask_question, end_interview]
-)
-
-builder.add_conditional_edges(
-    "follow_up",
-    route_after_follow_up,
     ["ask_question", "end_interview"]
 )
 
+# After evaluation, branch to follow_up, ask, or end
 builder.add_conditional_edges(
-    "ask_question",
+    "evaluate_answer",
     route_after_evaluation,
-    ["follow_up", "ask_question", "end_interview"]
+    ["follow_up", "ask_question", "end_interview"],
 )
 
 builder.add_edge("end_interview", END)
 
-#Compile the graph
-interview_graph = builder.compile()
+# Factory to compile app with checkpointer
 
-interview_graph.name = "MockInterviewAgent"
+def create_app(db_path: str):
+    # checkpointer = SqliteSaver.from_conn_string(db_path)
+    checkpointer = MemorySaver()
+    app = builder.compile(checkpointer=checkpointer)
+    app.name = "MockInterviewAgent"
+    return app
 
-__all__ = ["interview_graph"]
-
-
-
-
-            
-        
-
-    
+__all__ = ["create_app"]

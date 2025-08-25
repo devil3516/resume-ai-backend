@@ -14,6 +14,11 @@ from pathlib import Path
 from datetime import timedelta
 import os 
 import sys
+from dotenv import load_dotenv
+
+# Load .env early so downstream imports see env vars
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
     "payments",
     "users",
     "interview",
+    "channels",
 ]
 
 MIDDLEWARE = [
@@ -78,8 +84,14 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "resume_ai_backend.wsgi.application"
+ASGI_APPLICATION = "resume_ai_backend.asgi.application"
 
+# Channels layer (in-memory for development)
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer",
+    }
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
@@ -155,21 +167,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 # Allow all origins (for development/production flexibility)
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    "http://34.100.162.224:3000",
-    "http://34.100.162.224:5173",
-    "http://34.100.162.224:8080",
-    "https://34.100.162.224:3000",
-    "https://34.100.162.224:5173",
-    "https://34.100.162.224:8080",
-    "https://preview--resume-parser-django.lovable.app",
-]
+# CORS_ALLOWED_ORIGINS = ["*"]
 
 # Allow all origins for development (you can remove this in production)
 CORS_ALLOW_ALL_ORIGINS = True
@@ -178,10 +176,6 @@ CORS_ALLOW_ALL_ORIGINS = True
 CORS_ALLOW_CREDENTIALS = True
 
 
-# Allow regex-based origins
-CORS_ALLOWED_ORIGIN_REGEXES = [
-    r"^https:\/\/.*\.lovable\.app$",
-]
 
 # Allow all methods
 CORS_ALLOW_METHODS = [
