@@ -1,12 +1,7 @@
 import json
-
 from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.layers import get_channel_layer
-
-# Import the app factory
 from .agent import create_app
 
-# Single app instance for WS flows
 _app = create_app("interview_memory.db")
 
 class InterviewConsumer(AsyncWebsocketConsumer):
@@ -27,59 +22,33 @@ class InterviewConsumer(AsyncWebsocketConsumer):
             return
 
         config = {"configurable": {"thread_id": self.interview_id}}
+        
         # Get current state
         state = await _app.aget_state(config)
-        # Prepare updated state to evaluate the user's answer
+        
+        # Build updated state with user message
+        messages = state.values.get("messages", [])
+        messages.append({"role": "user", "content": user_response})
+        
         updated_state = {
             **state.values,
+            "messages": messages,
             "user_response": user_response,
             "current_state": "evaluate_answer",
         }
-        # Run one step of the graph
+        
+        # Run graph step
         result = await _app.ainvoke(updated_state, config=config)
-
-        # Extract assistant message
+        
+        # Send response
         msg = ""
         messages = result.get("messages", [])
         if messages:
             last = messages[-1]
             msg = getattr(last, "content", last.get("content", "")) if isinstance(last, dict) else getattr(last, "content", str(last))
 
-        # Emit back to the client
         await self.send(text_data=json.dumps({"message": msg}))
 
     async def interview_message(self, event):
         message = event["message"]
         await self.send(text_data=json.dumps({"message": message}))
-
-    async def interview_agent(self, event):
-        user_response = event["user_response"]
-        interview_id = self.interview_id
-
-        from channels.layers import get_channel_layer
-        channel_layer = get_channel_layer()
-
-        # Update the state with the user response
-        await channel_layer.group_send(
-            f"interview_{interview_id}",
-            {
-                "type": "interview.update_state",
-                "user_response": user_response,
-            },
-        )
-        
-        # Send a message back to the group to trigger the next step in the graph
-        await channel_layer.group_send(
-            f"interview_{interview_id}",
-            {
-                "type": "interview.process_next",
-            },
-        )
-
-    async def interview_update_state(self, event):
-        self.user_response = event["user_response"]
-
-    async def interview_process_next(self, event):
-        # TODO: Trigger the next step in the graph
-        print("Triggering next step in the graph")
-        pass

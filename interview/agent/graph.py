@@ -138,6 +138,7 @@ async def evaluate_answer(state: State) -> dict:
         job_title=state.job_title,
         interview_type=state.interview_type.value if hasattr(state.interview_type, "value") else str(state.interview_type),
         current_question=state.current_question,
+        user_response=state.user_response,
     )
 
     response = await llm.ainvoke([{"role": "system", "content": prompt}])
@@ -177,7 +178,11 @@ async def evaluate_answer(state: State) -> dict:
         pass
 
     result: dict = {
-        "messages": [{"role": "assistant", "content": response_content}],
+        
+        "messages": [
+            {"role": "user", "content": state.user_response},
+            {"role": "assistant", "content": response_content}
+            ],
         "follow_up_needed": follow_up_needed,
         "current_state": "ask_question",
         "voice_feedback": voice_analysis.get("voice_feedback"),
